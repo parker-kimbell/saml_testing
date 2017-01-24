@@ -29,7 +29,7 @@ var sp_options = {
   entity_id: "gotopwc://",
   private_key: fs.readFileSync("./ssl/server.key").toString(),
   certificate: fs.readFileSync("./ssl/server.crt").toString(),
-  assert_endpoint: "https://c832b6dc.ngrok.io/login",
+  assert_endpoint: "https://c832b6dc.ngrok.io/assert",
   allow_unencrypted_assertion: true
 };
 var sp = new saml2.ServiceProvider(sp_options);
@@ -50,21 +50,63 @@ app.get("/metadata_downstr3am_uniq.xml", function(req, res) {
   res.send(sp.create_metadata());
 });
 
+var counter = 0;
+
 // Starting point for login
 app.get("/login", function(req, res) {
+
   console.log('hitting login')
-  sp.create_login_request_url(idp, {}, function(err, login_url, request_id) {
-    if (err != null)
-      return res.send(500);
-      res.set('Content-Type', 'application/json');
-    res.redirect(login_url);
-  });
+  console.dir(req.cookies)
+  console.dir(req.signedCookies)
+  console.dir(req.body)
+  console.dir(req.query)
+  console.dir(req.headers)
+  console.log(req.protocol + '://' + req.get('host') + req.originalUrl)
+  console.log(req.url)
+  console.log('\n\n\n\n\n\n-----------------------')
+  if (counter === 0) {
+    counter += 1;
+    sp.create_login_request_url(idp, {}, function(err, login_url, request_id) {
+      if (err != null)
+        return res.send(500);
+      res.redirect(login_url);
+    });
+  } else {
+    res.set('Content-Type', 'application/json');
+    let expiration = new Date(Date.now() + 9000000);
+    res.cookie("SMSESSION", session_index, {
+      httpOnly: true,
+      expires: expiration, //Controls when this cookie will expire. When it does expire, we'll need to re-authenticate
+      path: "/",
+      secure: true,
+      domain: "ngrok.io"
+    });
+
+    res.cookie("SMTRYNO", "", {
+      httpOnly: true,
+      expires: expiration, //Controls when this cookie will expire. When it does expire, we'll need to re-authenticate
+      path: "/",
+      secure: true,
+      domain: "ngrok.io"
+    });
+
+    res.cookie("SMCHALLENGE", "SSL_CHALLENGE_DONE", {
+      httpOnly: true,
+      expires: expiration, //Controls when this cookie will expire. When it does expire, we'll need to re-authenticate
+      path: "/",
+      secure: true,
+      domain: "ngrok.io"
+    });
+    res.status(200).send(JSON.stringify({"LOS":"","COUNTRY":"AU","STAFFCLASS":"","GUID":"gsixteen001","OFFICECODE":"","PPID":"1005035501","EMAIL":"google.test.sixteen@au.pwc.com","SAPID":""}))
+  }
+
 });
 
 app.get('/test', function(req, res) {
   console.log('findout out if we are getting our cookies in subsequent calls')
   console.log('Req.cookies:', req.cookies)
-  res.send('we did it')
+  res.set('Content-Type', 'application/json');
+  res.status(200).send(JSON.stringify({ value: "Returning valid JSON" }))
 });
 
 // Assert endpoint for when login completes
@@ -87,9 +129,25 @@ app.post("/login", function(req, res) {
     name_id = saml_response.user.name_id;
     session_index = saml_response.user.session_index; // This value is also used to log users out
     //debugger;
-    let expiration = new Date(Date.now() + 900000);
+    let expiration = new Date(Date.now() + 9000000);
     //All res.cookie() does is set the HTTP Set-Cookie header with the options provided. Any option not specified defaults to the value stated in RFC 6265.
     res.cookie("SMSESSION", session_index, {
+      httpOnly: true,
+      expires: expiration, //Controls when this cookie will expire. When it does expire, we'll need to re-authenticate
+      path: "/",
+      secure: true,
+      domain: "ngrok.io"
+    });
+
+    res.cookie("SMTRYNO", "", {
+      httpOnly: true,
+      expires: expiration, //Controls when this cookie will expire. When it does expire, we'll need to re-authenticate
+      path: "/",
+      secure: true,
+      domain: "ngrok.io"
+    });
+
+    res.cookie("SMCHALLENGE", "SSL_CHALLENGE_DONE", {
       httpOnly: true,
       expires: expiration, //Controls when this cookie will expire. When it does expire, we'll need to re-authenticate
       path: "/",
@@ -142,8 +200,24 @@ app.post("/assert", function(req, res) {
       httpOnly: true,
       expires: expiration, //Controls when this cookie will expire. When it does expire, we'll need to re-authenticate
       path: "/",
-      secure: true,
-      domain: "ngrok.io"
+      secure: false,
+      domain: "."
+    });
+
+    res.cookie("SMTRYNO", "", {
+      httpOnly: true,
+      expires: expiration, //Controls when this cookie will expire. When it does expire, we'll need to re-authenticate
+      path: "/",
+      secure: false,
+      domain: "."
+    });
+
+    res.cookie("SMCHALLENGE", "SSL_CHALLENGE_DONE", {
+      httpOnly: true,
+      expires: expiration, //Controls when this cookie will expire. When it does expire, we'll need to re-authenticate
+      path: "/",
+      secure: false,
+      domain: "."
     });
     // res.cookie("SMCHALLENGE", "", {
     //   httpOnly: true,
@@ -153,15 +227,23 @@ app.post("/assert", function(req, res) {
     //   domain: ".pwcinternal.com"
     // });
     res.set({
-      "Transfer-Encoding" : "Identity",
-      "Content-Language" : "en-US",
-      Connection : "Keep-Alive",
-      "Keep-Alive" : "timeout=15, max=49999"
+      //"Transfer-Encoding" : "Identity",
+      //"Content-Language" : "en-US",
+      //Connection : "Keep-Alive",
+      //"Keep-Alive" : "timeout=15, max=49999",
+      //"Content-Security-Policy" : "default-src 'self' 'unsafe-inline' 'unsafe-eval' ; frame-ancestors https://*.ngrok.io;",
+      "Cache-Control" : "no-store,no-store",
+      "Content-Length" : 0,
+      //"Location" : "https://c832b6dc.ngrok.io/test",
+      "Server" : "",
+      "Strict-Transport-Security" : "max-age=31536000"
+      //"X-Content-Security-Policy" = "default-src 'self' 'unsafe-inline' 'unsafe-eval' ; frame-ancestors https://*.ngrok.io;";
     });
 
     console.log('sending headers', res._headers)
     console.log('sending cookies', res._cookies)
-    res.status(200).send(JSON.stringify({ value: "Hello " + saml_response.user.name_id + "!" }));
+    res.redirect("https://c832b6dc.ngrok.io/login")
+    //res.status(200).send(JSON.stringify({ value: "Hello " + saml_response.user.name_id + "!" }));
   });
 });
 
@@ -182,7 +264,7 @@ app.get("/logout", function(req, res) {
 });
 
 app.listen(3000, function() {
-  console.log('listening 3000')
+  console.log('listening 3000@@@@')
 });
 
 // var server = https.createServer(options, app).listen(3000, function() {
