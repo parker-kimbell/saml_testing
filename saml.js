@@ -17,13 +17,6 @@ var session_index;
 var x509IdP = "MIIC5TCCAc2gAwIBAgIQHMHScLtAPKhNJL8oEadDqDANBgkqhkiG9w0BAQUFADAaMRgwFgYDVQQDEw9PRklTU2lnbmluZ0NlcnQwHhcNMTQwODI3MTM0NTIzWhcNMjAwMjE3MTM0NTIzWjAaMRgwFgYDVQQDEw9PRklTU2lnbmluZ0NlcnQwggEiMA0GCSqGSIb3DQEBAQUAA4IBDwAwggEKAoIBAQC3CUhZzRVxThfD6smcRASzZVN9Itjwvsj+4KyjFqgioTnyc1fo2CszWDOVEP4KJb0Qb7KnDneq3E7yK9uXV9WV7HCyOOtqIxfD4jrGBBy89NmyzFQy7HRumFvSORXOWHmGUK+UT/wyZsYYhq1gAsuuZdrGWVrffaI1Oo+/WpoGh7bhLcHADINiWbHO1YC2YnGgzjlJpWz7fN2bn1oQhBplOHcEOLBl6Kl7Qg447Zl71EVHT1uTmw+uQYp95+23xauZkT6nMl9QgOprqwp71ftB6zqVNyWcswwHNtcLYH86Je7ab1V+SGmqrj7ko/zCUuLpNG4byxPPvKXC9YBX8BPvAgMBAAGjJzAlMBMGA1UdJQQMMAoGCCsGAQUFBwMBMA4GA1UdDwQHAwUAsAAAADANBgkqhkiG9w0BAQUFAAOCAQEAUjysm0FgiYnqvEE7mXPMV5yP3MxQ8hppEgRChSr43WfBrWotEJiAzJLWYJsyHCKyVZakGpVkW2GqqzClicnrldJAlUUl89ZLoUlQeGjEK+dKbeERWrOqwsjt8xG1acaupcuCOYAdwTC58Hfg+f+yZKW6cPR+VdBFssPsvv5VRt/3SfrtBv23f9J971NHCsVY+DR03qlfaVAktAJsh2rGCNLpCKCeN/TFANSMtF46otIRTa4jbS0OFiBBnWo5lL9ovpnFraDGQ9fCYzUkfd02BSj6ZLgJeqQPL99uxI/VO53HYx7xABM9yxyOQDY7PGJRvaEtC/8UZ7KC4bSzQhxXnw==";
 // var thumbprint = "2EE148D651630AACC591C806B5A5370090671F5A"
 
-var options = {
-    key: fs.readFileSync('./ssl/server.key'),
-    cert: fs.readFileSync('./ssl/server.crt'),
-    requestCert: true,
-    rejectUnauthorized: false
-};
-
 // Create service provider
 var sp_options = {
   entity_id: "gotopwc://",
@@ -65,14 +58,26 @@ app.get("/login", function(req, res) {
 
 });
 
+// Starting point for login
+app.get("/test", function(req, res) {
+
+  console.log('hitting test')
+  console.dir(req.cookies)
+
+  res.send('Success');
+
+});
+
 // Assert endpoint for when login completes
 app.post("/assert", function(req, res) {
   console.log('hitting assert')
   console.log(req.headers);
   var options = {request_body: req.body};
   sp.post_assert(idp, options, function(err, saml_response) {
-    if (err != null)
+    if (err != null) {
+      console.log(err)
       return res.send(500);
+    }
 
     // PETER REQUIREMENT. MUST RESPOND WITH THIS CONTENT TYPE
     res.set('Content-Type', 'application/json');
