@@ -1,0 +1,27 @@
+{
+  "name": "express_saml_example",
+  "version": "1.0.0",
+  "description": "An example of a SAML implementation using an Express server as a service provider.",
+  "main": "saml.js",
+  "dependencies": {
+    "body-parser": "^1.16.0",
+    "cookie-parser": "^1.4.3",
+    "express": "^4.14.0",
+    "multer": "^1.2.1",
+    "saml2-js": "^1.11.0"
+  },
+  "devDependencies": {},
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/parker-kimbell/saml_testing.git"
+  },
+  "author": "Parker Kimbell",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/parker-kimbell/saml_testing/issues"
+  },
+  "homepage": "https://github.com/parker-kimbell/saml_testing#readme"
+}
