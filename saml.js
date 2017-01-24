@@ -50,81 +50,31 @@ app.get("/metadata_downstr3am_uniq.xml", function(req, res) {
   res.send(sp.create_metadata());
 });
 
-var counter = 0;
-
 // Starting point for login
 app.get("/login", function(req, res) {
 
   console.log('hitting login')
   console.dir(req.cookies)
-  console.dir(req.signedCookies)
-  console.dir(req.body)
-  console.dir(req.query)
-  console.dir(req.headers)
-  console.log(req.protocol + '://' + req.get('host') + req.originalUrl)
-  console.log(req.url)
-  console.log('\n\n\n\n\n\n-----------------------')
-  if (counter % 2 === 0) {
-    counter += 1;
-    sp.create_login_request_url(idp, {}, function(err, login_url, request_id) {
-      if (err != null)
-        return res.send(500);
-      res.redirect(login_url);
-    });
-  } else {
-    res.set('Content-Type', 'application/json');
-    res.set("Access-Control-Allow-Origin" , "*")
-    let expiration = new Date(Date.now() + 9000000);
-    res.cookie("SMSESSION", session_index, {
-      httpOnly: true,
-      expires: expiration, //Controls when this cookie will expire. When it does expire, we'll need to re-authenticate
-      path: "/",
-      secure: true,
-      domain: ".io"
-    });
 
-    res.cookie("CMSSESSION", session_index, {
-      httpOnly: true,
-      expires: expiration, //Controls when this cookie will expire. When it does expire, we'll need to re-authenticate
-      path: "/",
-      secure: true,
-      domain: ".io"
-    });
-
-    res.cookie("SMTRYNO", "", {
-      httpOnly: true,
-      expires: expiration, //Controls when this cookie will expire. When it does expire, we'll need to re-authenticate
-      path: "/",
-      secure: true,
-      domain: ".io"
-    });
-
-    res.cookie("SMCHALLENGE", "SSL_CHALLENGE_DONE", {
-      httpOnly: true,
-      expires: expiration, //Controls when this cookie will expire. When it does expire, we'll need to re-authenticate
-      path: "/",
-      secure: true,
-      domain: ".io"
-    });
-    res.status(200).send(JSON.stringify({"LOS":"","COUNTRY":"AU","STAFFCLASS":"","GUID":"gsixteen001","OFFICECODE":"","PPID":"1005035501","EMAIL":"google.test.sixteen@au.pwc.com","SAPID":""}))
-  }
+  sp.create_login_request_url(idp, {}, function(err, login_url, request_id) {
+    if (err != null)
+      return res.send(500);
+    // The login endpoint must respond with a redirect to OFISS
+    res.redirect(login_url);
+  });
 
 });
 
 // Assert endpoint for when login completes
 app.post("/assert", function(req, res) {
   console.log('hitting assert')
+  console.log(req.headers);
   var options = {request_body: req.body};
-  // console.log(req.body)
-  // console.log(req.headers)
-  // console.log('\n\n\n\n\n\n-----------------------')
   sp.post_assert(idp, options, function(err, saml_response) {
-    // console.log(idp)
-    // console.log(options)
-    // console.log(err)
-    console.log(saml_response)
     if (err != null)
       return res.send(500);
+
+    // PETER REQUIREMENT. MUST RESPOND WITH THIS CONTENT TYPE
     res.set('Content-Type', 'application/json');
     // Save name_id and session_index for logout
     // Note:  In practice these should be saved in the user session, not globally.
@@ -132,21 +82,8 @@ app.post("/assert", function(req, res) {
     session_index = saml_response.user.session_index; // This value is also used to log users out
     //debugger;
     let expiration = new Date(Date.now() + 900000);
-    //All res.cookie() does is set the HTTP Set-Cookie header with the options provided. Any option not specified defaults to the value stated in RFC 6265.
-    res.cookie("SMSESSION", session_index, {
-      httpOnly: true,
-      expires: expiration, //Controls when this cookie will expire. When it does expire, we'll need to re-authenticate
-      path: "/",
-      secure: false,
-    });
 
-    res.cookie("SMTRYNO", "", {
-      httpOnly: true,
-      expires: expiration, //Controls when this cookie will expire. When it does expire, we'll need to re-authenticate
-      path: "/",
-      secure: false,
-    });
-
+    // This is the cookie we use to manage the user session post-authentication
     res.cookie("CMSSESSION", session_index, {
       httpOnly: true,
       expires: expiration, //Controls when this cookie will expire. When it does expire, we'll need to re-authenticate
@@ -154,44 +91,14 @@ app.post("/assert", function(req, res) {
       secure: true,
     });
 
-    res.cookie("SMCHALLENGE", "SSL_CHALLENGE_DONE", {
-      httpOnly: true,
-      expires: expiration, //Controls when this cookie will expire. When it does expire, we'll need to re-authenticate
-      path: "/",
-      secure: false,
-    });
-    // res.cookie("SMCHALLENGE", "", {
-    //   httpOnly: true,
-    //   expires: expiration, //Controls when this cookie will expire. When it does expire, we'll need to re-authenticate
-    //   path: "/",
-    //   secure: true,
-    //   domain: ".pwcinternal.com"
-    // });
-    res.set({
-      //"Transfer-Encoding" : "Identity",
-      //"Content-Language" : "en-US",
-      //Connection : "Keep-Alive",
-      //"Keep-Alive" : "timeout=15, max=49999",
-      "Content-Security-Policy" : "default-src 'self' 'unsafe-inline' 'unsafe-eval' ; frame-ancestors https://*.ngrok.io; http://*.pwc.com http://*.pwcinternal.com http://*.optimalidm.com http://*.pwcmlp.com http://*.dallasmlp.com http://*.pwctrack.com pwc-spark.com sparkpwc.com http://*.pwc-spark.com http://*.kaltura.com http://*.akamaihd.net https://*.pwc.com https://*.pwcinternal.com https://*.optimalidm.com https://*.pwcmlp.com https://*.dallasmlp.com https://*.pwctrack.com https://*.pwc-spark.com https://*.kaltura.com https://*.akamaihd.net https://*.csod.com;",
-      "Cache-Control" : "no-store,no-store",
-      "Content-Length" : 0,
-      "Access-Control-Allow-Origin" : "*",
-      //"Location" : "https://c832b6dc.ngrok.io/test",
-      "Server" : "",
-      "Strict-Transport-Security" : "max-age=31536000",
-      "X-Content-Security-Policy" : "default-src 'self' 'unsafe-inline' 'unsafe-eval' ; frame-ancestors https://*.ngrok.io; http://*.pwc.com http://*.pwcinternal.com http://*.optimalidm.com http://*.pwcmlp.com http://*.dallasmlp.com http://*.pwctrack.com pwc-spark.com sparkpwc.com http://*.pwc-spark.com http://*.kaltura.com http://*.akamaihd.net https://*.pwc.com https://*.pwcinternal.com https://*.optimalidm.com https://*.pwcmlp.com https://*.dallasmlp.com https://*.pwctrack.com https://*.pwc-spark.com https://*.kaltura.com https://*.akamaihd.net https://*.csod.com;"
-    });
-
-    console.log('sending headers', res._headers)
-    console.log('sending cookies', res._cookies)
-    res.redirect("https://c832b6dc.ngrok.io/login")
-    //res.status(200).send(JSON.stringify({ value: "Hello " + saml_response.user.name_id + "!" }));
+    res.status(200).send(JSON.stringify({ value: "Hello " + saml_response.user.name_id + "!" }));
   });
 });
 
 // Starting point for logout
 app.get("/logout", function(req, res) {
   console.log('hitting logout')
+  // TODO. This needs to pull the session_index out of the given file. It makes sense that we'd also need the name ID
   var options = {
     name_id: name_id,
     session_index: session_index
@@ -206,7 +113,7 @@ app.get("/logout", function(req, res) {
 });
 
 app.listen(3000, function() {
-  console.log('listening 3000@@@@')
+  console.log('listening 3000')
 });
 
 // var server = https.createServer(options, app).listen(3000, function() {
