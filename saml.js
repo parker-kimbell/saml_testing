@@ -23,7 +23,7 @@ var sp_options = {
   entity_id: "gotopwc://", // This is the unique identifier that IdM will look for to know that a user is authenticating using the mobile app. This value must remain the same.
   private_key: fs.readFileSync("./ssl/server.key").toString(), // The private SSL key for the server this is deployed on.
   certificate: fs.readFileSync("./ssl/server.crt").toString(), // The certificate for the server this is deployed on.
-  assert_endpoint: "https://c832b6dc.ngrok.io/assert", // This is the endpoint that will be called by the mobile app as the final step of authentication. It must receive a POST and be able to handle URL encoded data. This should be the CMS URL.
+  assert_endpoint: "https://downstreampwc.ngrok.io/assert", // This is the endpoint that will be called by the mobile app as the final step of authentication. It must receive a POST and be able to handle URL encoded data. This should be the CMS URL.
   allow_unencrypted_assertion: true // The authentication response we're getting from IdM is not encrypted (which is not recommended by the SAML spec but that's out of our control).
                                     // Most libraries won't expect this (this one didn't) so you'll probably need to set this to "true" in whatever library ends up being used.
 };
@@ -48,11 +48,13 @@ app.get("/metadata.xml", function(req, res) {
 
 // The login path. This must accept a GET request.
 app.get("/login", function(req, res) {
-
+  console.log('hitting login', Date())
   // Generate our SAML authentication request based on the configuration above
   sp.create_login_request_url(idp, {}, function(err, login_url, request_id) {
     if (err != null)
       return res.send(500);
+    res.set('Content-Type', 'application/json');
+    console.log('redirecting to ', login_url)
     // The login endpoint must respond with a redirect (302 code) to the IdM endpoint.
     res.redirect(login_url);
   });
@@ -93,7 +95,7 @@ app.get("/exampleEndpoint", function(req, res) {
 
 */
 app.post("/assert", function(req, res) {
-  console.log('hitting assert');
+  console.log('hitting assert', Date());
   console.log(req.headers);
   console.log(req.cookies);
   // The request body contains
